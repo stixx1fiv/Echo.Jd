@@ -31,6 +31,7 @@ class JalenAgent:
         self._running = False
         self._input_thread = None
         # Forward both parameters so `TextGeneration` can decide what to do with them.
+        self.text_gen = TextGeneration(model_path=model_path, n_gpu_layers=n_gpu_layers, log_prompts=True)
 
     def start_chatbox(self):
         if self._running:
