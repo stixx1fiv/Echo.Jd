@@ -1,0 +1,17 @@
+[
+    {
+        "trigger": "pizza",
+        "mood": "happy",
+        "description": "Mention of pizza makes Judy happy."
+    },
+    {
+        "trigger": "sad",
+        "mood": "sad",
+        "description": "Triggered when something sad is said."
+    },
+    {
+        "trigger": "location",
+  "scene": "location",
+        "description": "switch to the location scene."
+    }
+]

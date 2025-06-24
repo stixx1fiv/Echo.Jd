@@ -1,0 +1,80 @@
+# xxEcho specific
+xxEcho.JD
+xxEcho-clean
+
+# Tests and caches
+tests/__pycache__/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Virtual environments
+.venv/
+.env/
+venv/
+env/
+
+# API Gateway
+api_gateway/
+
+# Index files
+*.idx
+
+# Build directories
+build/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Compiled binaries
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+*.lib
+
+# Model files (typically large)
+*.gguf
+*.bin
+models/
+*.safetensors
+
+# Logs
+*.log
+logs/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Node modules (if any JS tooling)
+node_modules/
+
+# Python specific
+*.egg-info/
+dist/
+.pytest_cache/
+.coverage
+htmlcov/

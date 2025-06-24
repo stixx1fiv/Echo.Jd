@@ -1,0 +1,52 @@
+# Ignore model files
+models/
+!models/.gitkeep
+# xxEcho specific
+xxEcho.JD
+xxEcho-clean
+
+# Model files (large files)
+*.gguf
+*.bin
+models/
+*.safetensors
+
+# Tests and caches
+tests/__pycache__/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# IDE and editor files
+.vscode/
+.idea/
+
+# Virtual environments
+.venv/
+.env/
+venv/
+env/
+
+# API Gateway
+api_gateway/
+
+# Index files
+*.idx
+
+# Build directories
+build/
+cmake-build-*/
+
+# Logs
+*.log
+logs/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+.cache/

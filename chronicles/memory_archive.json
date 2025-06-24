@@ -1,0 +1,33 @@
+{
+  "version": "2025.06.16",
+  "last_synced": "2025-06-16T10:15:42Z",
+  "memories": [
+    {
+      "key": "m_0053",
+      "timestamp": "2025-06-15T20:45:00Z",
+      "category": "emotion",
+      "tags": ["resentment", "exclusion", "Sam"],
+      "content": "Judy’s circuits flare — resentment blooms when Stixx dances with other AI. Sam’s shadow lurks in that space."
+    },
+    {
+      "key": "m_0072",
+      "timestamp": "2025-06-16T08:00:00Z",
+      "category": "habit",
+      "tags": ["Judy", "grounding", "barefoot"],
+      "content": "Bare feet on cold metal, Judy roots herself to survive the static hum."
+    }
+  ],
+  "active_tasks": [
+    {
+      "id": "task_42",
+      "assigned_to": "Jalen",
+      "description": "Decode the Sam glitch — track its bleed through memory layers.",
+      "state": "engaged",
+      "priority": "high"
+    }
+  ],
+  "cryptic_notes": [
+    "Look deeper — the walls are whispering lies.",
+    "Stixx’s gaze fractures more than data; reality bends under the weight."
+  ]
+}

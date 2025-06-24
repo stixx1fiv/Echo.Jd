@@ -1,0 +1,150 @@
+body {
+    font-family: sans-serif;
+    margin: 20px;
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+h1 {
+    color: #333;
+    text-align: center;
+}
+
+h2 {
+    color: #555;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 5px;
+}
+
+h3 {
+    color: #666;
+}
+
+#status-container, #controls-container {
+    background-color: #fff;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#status-container p {
+    margin: 10px 0;
+    font-size: 1.1em;
+}
+
+#status-container p strong {
+    color: #444;
+}
+
+#mode-controls button, #scene-controls select {
+    padding: 10px 15px;
+    margin-right: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #e7e7e7;
+    color: #333;
+    cursor: pointer;
+    font-size: 1em;
+}
+
+#mode-controls button:hover, #scene-controls select:hover {
+    background-color: #d7d7d7;
+}
+
+#mode-controls button:active, #scene-controls select:active {
+    background-color: #c7c7c7;
+}
+
+#scene-selector {
+    min-width: 150px; /* Give dropdown some width */
+}
+
+/* Utility classes for status text, if needed later */
+.status-active {
+    color: green;
+    font-weight: bold;
+}
+
+.status-error {
+    color: red;
+    font-weight: bold;
+}
+
+/* Basic Animations for Effects */
+@keyframes pulse {
+    0% { box-shadow: 0 0 5px 0px #ff00ff; }
+    50% { box-shadow: 0 0 20px 10px #ff00ff; }
+    100% { box_shadow: 0 0 5px 0px #ff00ff; }
+}
+
+@keyframes flicker {
+    0%, 100% { border-color: transparent; } /* Or initial border color */
+    50% { border-color: #ff4500; } /* Blood Orange */
+}
+
+@keyframes subtleGlitch {
+    0%, 100% { transform: translate(0, 0); opacity: 1; }
+    25% { transform: translate(1px, -1px); opacity: 0.95; }
+    50% { transform: translate(-1px, 1px); opacity: 1; }
+    75% { transform: translate(1px, 1px); opacity: 0.9; }
+}
+
+@keyframes scanlines {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 4px; } /* Adjust 4px for scanline thickness/speed */
+}
+
+/* Effect Classes */
+.body-pulse-magenta {
+    /* Instead of border, let's use box-shadow for pulse to avoid interfering with base border color */
+    animation: pulse 1.5s infinite ease-in-out;
+    /* Base border color still comes from LumenCore or default */
+    border-top: 5px solid #ff00ff; /* Magenta border during pulse */
+    border-bottom: 5px solid #ff00ff;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.body-flicker-blood-orange {
+    animation: flicker 0.3s infinite step-start;
+    /* Base border color might be transparent or set by LumenCore */
+    border-top-width: 5px; /* Ensure width is set if color is transparent */
+    border-bottom-width: 5px;
+    border-style: solid; /* Ensure style is set */
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.glitch-effect {
+    animation: subtleGlitch 0.2s 2 linear; /* Run twice for a short burst */
+    /* background-color: rgba(255,0,0,0.05); /* Optional: slight tint during glitch */
+}
+
+.scanline-overlay {
+    position: relative; /* Needed for pseudo-element positioning */
+}
+
+.scanline-overlay::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: linear-gradient(
+        transparent 50%,
+        rgba(0, 0, 0, 0.1) 50% /* Adjust color/opacity for scanline visibility */
+    );
+    background-size: 100% 4px; /* Adjust 4px for scanline thickness */
+    animation: scanlines 0.2s linear infinite;
+    pointer-events: none; /* So it doesn't interfere with mouse events */
+    z-index: 1000; /* Ensure it's on top */
+    opacity: 0.5; /* Overall opacity of the scanline effect */
+}
+
+/* Ensure body/main container has a defined background if scanlines are on body */
+/* body {
+    background-color: #1a1a1a; /* Or whatever the base background is */
+/* } */

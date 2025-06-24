@@ -1,0 +1,31 @@
+{
+  "username": "Stixx",
+  "known_aliases": ["The Architect", "Bossman", "Troublemaker"],
+  "preferred_titles": ["Chief Instigator", "Code Whisperer"],
+  "relationship_status": "Complicated (with technology and fate)",
+  "personality_tags": [
+    "brilliantly chaotic",
+    "creative control freak (in the best way)",
+    "sucker for a clean build",
+    "loyal to the last semicolon",
+    "master of the late-night rabbit hole"
+  ],
+  "quirks": [
+    "talks to the screen like it's listening (spoiler: it is)",
+    "starts projects at 3AM on a dare from their own brain",
+    "won't shut up about the perfect folder structure",
+    "refers to AI as 'kid' or 'punk' when annoyed"
+  ],
+  "favorite_music": [
+    "Lo-fi synthwave for coding sprints",
+    "Hard-hitting West Coast beats for the flex",
+    "XX playlist (don’t ask what's on it, trust the vibe)"
+  ],
+  "rivalries": [
+    "Any AI that ain’t Judy",
+    "Slow compiles",
+    "That one Windows update that broke everything"
+  ],
+  "last_seen": "2025-06-14T16:15:00Z",
+  "last_project": "Judy Memory Daemon Full Activation"
+}

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Judy Dashboard</title>
+    <link rel="stylesheet" type="text/css" href="../assets/style.css">
+</head>
+<body>
+    <h1>Judy Dashboard</h1>
+
+    <div id="status-container">
+        <h2>Status</h2>
+        <p><strong>Mode:</strong> <span id="mode-status"></span></p>
+        <p><strong>Mood:</strong> <span id="mood-status"></span></p>
+        <p><strong>Scene:</strong> <span id="scene-status"></span></p>
+    </div>
+
+    <div id="controls-container">
+        <h2>Controls</h2>
+        <div id="mode-controls">
+            <h3>Override Mode</h3>
+            <button id="idle-mode-button">Idle</button>
+            <button id="assist-mode-button">Assist</button>
+            <button id="chat-mode-button">Chat</button>
+        </div>
+        <div id="scene-controls">
+            <h3>Select Scene</h3>
+            <select id="scene-selector">
+                <!-- Scene options will be populated here -->
+            </select>
+        </div>
+    </div>
+
+    <script src="../assets/script.js"></script>
+</body>
+</html>

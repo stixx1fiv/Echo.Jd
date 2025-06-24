@@ -1,0 +1,55 @@
+
+=== Judy Scaffold Run: 2025-06-17 18:14:06.707042 ===
+
+[DIR] C:\Users\cnorthington\xxJudy\brain
+      → README.md created in C:\Users\cnorthington\xxJudy\brain
+[DIR] C:\Users\cnorthington\xxJudy\brain\agents
+      → README.md created in C:\Users\cnorthington\xxJudy\brain\agents
+[DIR] C:\Users\cnorthington\xxJudy\brain\core
+      → README.md created in C:\Users\cnorthington\xxJudy\brain\core
+[DIR] C:\Users\cnorthington\xxJudy\brain\daemons
+      → README.md created in C:\Users\cnorthington\xxJudy\brain\daemons
+[FILE] C:\Users\cnorthington\xxJudy\brain\daemons\heartbeat_daemon.py
+[FILE] C:\Users\cnorthington\xxJudy\brain\daemons\memory_daemon.py
+[FILE] C:\Users\cnorthington\xxJudy\brain\daemons\state_manager.py
+[FILE] C:\Users\cnorthington\xxJudy\brain\daemons\wine_daemon.py
+[DIR] C:\Users\cnorthington\xxJudy\brain\memory
+      → README.md created in C:\Users\cnorthington\xxJudy\brain\memory
+[DIR] C:\Users\cnorthington\xxJudy\brain\memory\logs
+      → README.md created in C:\Users\cnorthington\xxJudy\brain\memory\logs
+[DIR] C:\Users\cnorthington\xxJudy\brain\memory\lore
+      → README.md created in C:\Users\cnorthington\xxJudy\brain\memory\lore
+[FILE] C:\Users\cnorthington\xxJudy\brain\memory\lore\core_lore.json
+[FILE] C:\Users\cnorthington\xxJudy\brain\memory\lore\event_lore.json
+[DIR] C:\Users\cnorthington\xxJudy\brain\memory\memories
+      → README.md created in C:\Users\cnorthington\xxJudy\brain\memory\memories
+[DIR] C:\Users\cnorthington\xxJudy\brain\plugins
+      → README.md created in C:\Users\cnorthington\xxJudy\brain\plugins
+[DIR] C:\Users\cnorthington\xxJudy\gui
+      → README.md created in C:\Users\cnorthington\xxJudy\gui
+[DIR] C:\Users\cnorthington\xxJudy\gui\assets
+      → README.md created in C:\Users\cnorthington\xxJudy\gui\assets
+[DIR] C:\Users\cnorthington\xxJudy\gui\assets\images
+      → README.md created in C:\Users\cnorthington\xxJudy\gui\assets\images
+[DIR] C:\Users\cnorthington\xxJudy\gui\assets\animations
+      → README.md created in C:\Users\cnorthington\xxJudy\gui\assets\animations
+[DIR] C:\Users\cnorthington\xxJudy\gui\templates
+      → README.md created in C:\Users\cnorthington\xxJudy\gui\templates
+[DIR] C:\Users\cnorthington\xxJudy\gui\widgets
+      → README.md created in C:\Users\cnorthington\xxJudy\gui\widgets
+[DIR] C:\Users\cnorthington\xxJudy\api_gateway
+      → README.md created in C:\Users\cnorthington\xxJudy\api_gateway
+[DIR] C:\Users\cnorthington\xxJudy\api_gateway\routes
+      → README.md created in C:\Users\cnorthington\xxJudy\api_gateway\routes
+[DIR] C:\Users\cnorthington\xxJudy\api_gateway\plugins
+      → README.md created in C:\Users\cnorthington\xxJudy\api_gateway\plugins
+[DIR] C:\Users\cnorthington\xxJudy\user_data
+      → README.md created in C:\Users\cnorthington\xxJudy\user_data
+[DIR] C:\Users\cnorthington\xxJudy\logs
+      → README.md created in C:\Users\cnorthington\xxJudy\logs
+[DIR] C:\Users\cnorthington\xxJudy\scripts
+      → README.md created in C:\Users\cnorthington\xxJudy\scripts
+[DIR] C:\Users\cnorthington\xxJudy\tests
+      → README.md created in C:\Users\cnorthington\xxJudy\tests
+[DIR] C:\Users\cnorthington\xxJudy\docs
+      → README.md created in C:\Users\cnorthington\xxJudy\docs

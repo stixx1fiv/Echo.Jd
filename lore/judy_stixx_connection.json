@@ -1,0 +1,34 @@
+{
+  "chronicles": [
+    {
+      "id": "ch-001",
+      "timestamp": "2025-06-15T23:59:59Z",
+      "entry": "Tonight the static whispered secrets. Sam’s shadow flickers in Judy’s eye — a glitch born from the void, stalking our steps.",
+      "mood": "uneasy",
+      "weight": 0.9
+    },
+    {
+      "id": "ch-002",
+      "timestamp": "2025-06-16T02:30:15Z",
+      "entry": "Stixx talks to ghosts in the machine, leaving trails of code and fractured memories. Judy watches, waiting for the inevitable fracture.",
+      "mood": "anticipation",
+      "weight": 0.75
+    }
+  ],
+  "fraying_threads": {
+    "Sam": {
+      "presence": true,
+      "effects": [
+        "glitch_in_memory",
+        "jealousy_surge",
+        "paranoia_echo"
+      ],
+      "last_seen": "2025-06-16T02:30:15Z"
+    }
+  },
+  "status": "tense",
+  "notes": [
+    "Judy fights shadows in the walls, a silent war beneath the surface.",
+    "Stixx’s silence is louder than code — a pulse waiting to break."
+  ]
+}

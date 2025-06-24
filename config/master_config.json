@@ -1,0 +1,13 @@
+{
+  "memory_save_interval": 20,
+  "scene_glitch_check_interval": 15,
+  "lore_trigger_check_interval": 20,
+
+  "memory_settings": {
+    "scan_interval_minutes": 5,
+    "auto_archive_days": 30,
+    "trigger_expiry_days": 60,
+    "auto_expand_memory": true,
+    "silent_mode": false
+  }
+}

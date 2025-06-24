@@ -1,0 +1,14 @@
+[
+    {
+        "start": "09:00",
+        "end": "10:00",
+        "mode": "assist",
+        "description": "Morning meeting"
+    },
+    {
+        "start": "14:00",
+        "end": "15:00",
+        "mode": "chat",
+        "description": "Informal chat with team"
+    }
+]
