@@ -18,7 +18,7 @@ class TextGeneration:
     specified anywhere).
     """
 
-    def __init__(self, model_path: str | None = None, n_gpu_layers: int | None = None):
+    def __init__(self, model_path: str | None = None, n_gpu_layers: int | None = None, log_prompts: bool = False):
         # 1) Explicit argument takes precedence
         resolved_model_path = model_path
 
@@ -70,6 +70,7 @@ class TextGeneration:
 
         self.model_path = resolved_model_path
         self.n_gpu_layers = n_gpu_layers
+        self.log_prompts = log_prompts # Store the log_prompts preference
 
         print(
             f"[TextGeneration] Loading model from {self.model_path} (n_gpu_layers={self.n_gpu_layers})..."
@@ -81,20 +82,37 @@ class TextGeneration:
         except TypeError:
             # Older versions of llama.cpp might not accept n_gpu_layers
             self.model = Llama(model_path=self.model_path)
+        except Exception as e: # Catch other potential model loading errors
+            print(f"[TextGeneration] Critical error loading model: {e}. Text generation will likely fail.")
+            self.model = None # Ensure model is None if loading fails catastrophically
+
 
         self.lock = threading.Lock()
 
     def generate(self, prompt, max_tokens=150, temperature=0.3):
         with self.lock:
-            print(f"\n[TextGeneration] Prompt being sent:\n{prompt}\n")
-            response = self.model(
-                prompt=prompt,
-                max_tokens=max_tokens,
-                temperature=temperature,
-                stop=["You:", "Stixx:", "\nYou:", "\nStixx:", "User:", "\nUser:"]
-            )
-            result = response['choices'][0]['text'].strip()
-            print(f"[TextGeneration] Generated response: {result}")
+            if self.log_prompts:
+                print(f"\n[TextGeneration] Prompt being sent:\n{prompt}\n")
+
+            if self.model is None:
+                # This case should ideally be handled before calling generate,
+                # or by how JalenAgent handles a None model from TextGeneration.
+                # For now, return a clear error message.
+                result = "[TextGeneration Error: Model not available]"
+            else:
+                try:
+                    response = self.model(
+                        prompt=prompt,
+                        max_tokens=max_tokens,
+                        temperature=temperature,
+                        stop=["You:", "Stixx:", "\nYou:", "\nStixx:", "User:", "\nUser:"]
+                    )
+                    result = response['choices'][0]['text'].strip()
+                except Exception as e:
+                    result = f"[TextGeneration Error: {e}]"
+
+            if self.log_prompts:
+                print(f"[TextGeneration] Generated response: {result}")
             return result
 
     def generate_async(self, prompt, callback, max_tokens=150, temperature=0.3):
