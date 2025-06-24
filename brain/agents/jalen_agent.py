@@ -5,10 +5,24 @@ import json
 import os
 import concurrent.futures
 from brain.core.text_generation import TextGeneration
+
+# Attempt to import the rich Judy prompt template. If that fails (e.g., because
+# the module is not on the Python path when this file is executed as a script),
+# fall back to a minimal template that still provides the required placeholders
+# so that `.format(...)` calls succeed.
 try:
-    from brain.core.prompt_frame import prompt_template
+    from brain.core.prompt_frame import prompt_template  # type: ignore
 except ImportError:
-    prompt_template = None  # Fallback if module is not available
+    prompt_template = """
+{judy_name} (mood: {mood}, scene: {scene})
+
+Recent memories:
+{recent_memories}
+
+{user_name} said: {user_message}
+
+{judy_name}:
+"""
 
 class JalenAgent:
     def __init__(self, memory_daemon, state_manager, model_path=None, n_gpu_layers=None):
@@ -16,8 +30,8 @@ class JalenAgent:
         self.memory_daemon = memory_daemon
         self._running = False
         self._input_thread = None
-        # Pass only model_path to TextGeneration; n_gpu_layers is not a valid parameter.
-        self.text_gen = TextGeneration(model_path=model_path)
+        # Forward both parameters so `TextGeneration` can decide what to do with them.
+        self.text_gen = TextGeneration(model_path=model_path, n_gpu_layers=n_gpu_layers)
 
     def start_chatbox(self):
         if self._running:
