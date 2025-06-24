@@ -75,9 +75,12 @@ def launch_test_gui(agent):
             # Generate response asynchronously
             def handle_response(response):
                 jalen_widget.hide_typing_indicator()
+                jalen_widget.show_avatar(temporary=True) # Show avatar with Judy's message
                 jalen_widget._log_message(f"You: {user_message}")
                 jalen_widget._log_message(f"Judy🌹: {response}")
             
+            # Hide avatar before showing typing indicator and sending new message
+            jalen_widget.hide_avatar()
             agent.generate_response_async(user_message, handle_response)
         else:
             jalen_widget._log_message(f"You: {user_message}")
@@ -129,7 +132,11 @@ def main():
     model_path_config = model_settings.get("model_path") # Will be None if not set
     # Default n_gpu_layers to 0 (CPU) if not specified or if section is missing.
     # The TextGeneration class itself also has a default.
-    n_gpu_layers_config = model_settings.get("n_gpu_layers", 0) 
+    n_gpu_layers_config = model_settings.get("n_gpu_layers", 0)
+
+    # Extract logging settings
+    logging_settings = config.get("logging_settings", {})
+    log_prompts_config = logging_settings.get("log_prompts", False)
 
     state_file = config.get("state_file", "runtime/state.json")
     state_manager = StateManager(memory_file=state_file)
@@ -162,11 +169,12 @@ def main():
     pulse_coordinator.start()
 
     # Fire up Judy's chat agent
-    # Pass the model_path and n_gpu_layers from config to JalenAgent
-    agent = JalenAgent(memory_daemon, 
-                       state_manager, 
-                       model_path=model_path_config, 
-                       n_gpu_layers=n_gpu_layers_config)
+    # Pass the model_path, n_gpu_layers, and log_prompts from config to JalenAgent
+    agent = JalenAgent(memory_daemon,
+                       state_manager,
+                       model_path=model_path_config,
+                       n_gpu_layers=n_gpu_layers_config,
+                       log_prompts=log_prompts_config)
     # agent.start_chatbox()  # Disabled for test GUI
     gui_thread = threading.Thread(target=launch_test_gui, args=(agent,), daemon=True)
     gui_thread.start()

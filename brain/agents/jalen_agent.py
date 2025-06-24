@@ -25,13 +25,13 @@ Recent memories:
 """
 
 class JalenAgent:
-    def __init__(self, memory_daemon, state_manager, model_path=None, n_gpu_layers=None):
+    def __init__(self, memory_daemon, state_manager, model_path=None, n_gpu_layers=None, log_prompts=False):
         self.state_manager = state_manager
         self.memory_daemon = memory_daemon
         self._running = False
         self._input_thread = None
         # Forward both parameters so `TextGeneration` can decide what to do with them.
-        self.text_gen = TextGeneration(model_path=model_path, n_gpu_layers=n_gpu_layers)
+        self.text_gen = TextGeneration(model_path=model_path, n_gpu_layers=n_gpu_layers, log_prompts=log_prompts)
 
     def start_chatbox(self):
         if self._running:

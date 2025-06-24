@@ -4,3 +4,4 @@ uvicorn
 rich
 llama-cpp-python
 watchdog
+Pillow

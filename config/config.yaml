@@ -20,4 +20,7 @@ model_settings:
 # api_keys:
 #   some_service: "your_api_key_here"
 
+logging_settings:
+  log_prompts: false  # Set to true to log prompts and responses, false to disable
+
 state_file: "runtime/state.json"
