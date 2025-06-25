@@ -143,60 +143,81 @@ def main():
 
     memory_daemon = MemoryDaemon(memory_file=MEMORY_PATH, archive_file=ARCHIVE_PATH)
     memory_daemon.state_manager = state_manager
+    # memory_daemon.start() # Ensure memory daemon is started if it has a start method
 
-    lore_trigger_watcher = LoreTriggerWatcher(state_manager, memory_daemon)
+    # --- Temporarily disable non-essential daemons ---
+    # lore_trigger_watcher = LoreTriggerWatcher(state_manager, memory_daemon)
+    # lore_trigger_watcher.start() # If it has a start method
 
-    message_queue = Queue()
+    # message_queue = Queue()
+    # def dummy_command_router(cmd):
+    #     print(f"[CommandRouter] {cmd}")
+    # message_handler = MessageHandlerDaemon(dummy_command_router, message_queue, state_manager=state_manager)
+    # message_handler.start()
 
-    def dummy_command_router(cmd):
-        print(f"[CommandRouter] {cmd}")
+    # pulse_coordinator = PulseCoordinator(
+    #     state_manager=state_manager,
+    #     memory_daemon=memory_daemon,
+    #     daemons={
+    #         # "LoreTriggerWatcher": lore_trigger_watcher, # Disabled
+    #         # "MessageHandler": message_handler # Disabled
+    #     },
+    #     interval=30 # Increased interval if kept, or disable
+    # )
+    # pulse_coordinator.register_observer(status_bar.handle_pulse_update) # GUI dependent
+    # pulse_coordinator.start()
+    # --- End of disabled daemons ---
 
-    message_handler = MessageHandlerDaemon(dummy_command_router, message_queue, state_manager=state_manager)
-    message_handler.start()
+    print("[⚠️] LoreTriggerWatcher, MessageHandlerDaemon, and PulseCoordinator are temporarily disabled for simplification.")
 
-    # PulseCoordinator now fully operational
-    daemons = {
-        "LoreTriggerWatcher": lore_trigger_watcher,
-        "MessageHandler": message_handler
-    }
-    pulse_coordinator = PulseCoordinator(
-        state_manager=state_manager,
-        memory_daemon=memory_daemon,
-        daemons=daemons,
-        interval=5
-    )
-    pulse_coordinator.register_observer(status_bar.handle_pulse_update)
-    pulse_coordinator.start()
-
-    # Fire up Judy's chat agent
-    # Pass the model_path, n_gpu_layers, and log_prompts from config to JalenAgent
     agent = JalenAgent(memory_daemon,
                        state_manager,
                        model_path=model_path_config,
                        n_gpu_layers=n_gpu_layers_config,
                        log_prompts=log_prompts_config)
-    # agent.start_chatbox()  # Disabled for test GUI
-    gui_thread = threading.Thread(target=launch_test_gui, args=(agent,), daemon=True)
-    gui_thread.start()
 
-    print("[🌹] Judy’s system is live. Daemons humming. Pulse beating. Let’s ride.")
+    # Determine mode: CLI or GUI
+    run_gui = False
+    if len(sys.argv) > 1 and sys.argv[-1] == "--gui":
+        run_gui = True
+    
+    if run_gui:
+        print("[🚀] Launching GUI mode...")
+        gui_thread = threading.Thread(target=launch_test_gui, args=(agent,), daemon=True)
+        gui_thread.start()
+    else:
+        print("[🚀] Launching CLI mode...")
+        agent.start_chatbox() # Enable CLI chatbox
+
+    print("[🌹] Judy’s simplified system is live. Focus on core chat.")
 
     try:
+        # If running CLI, the main loop is effectively in agent._chat_loop()
+        # If running GUI, this loop keeps the main thread alive for daemon threads
+        # and to catch KeyboardInterrupt.
         while True:
+            if run_gui and not gui_thread.is_alive():
+                print("[System] GUI thread has ended. Exiting.")
+                break
+            if not run_gui and agent._input_thread and not agent._input_thread.is_alive():
+                 print("[System] CLI chat thread has ended. Exiting.")
+                 break
             time.sleep(1)
     except KeyboardInterrupt:
         print("\n[System] Shutdown requested.")
-        agent.stop()
-        memory_daemon.stop()
-        lore_trigger_watcher.stop()
-        message_handler.stop()
-        pulse_coordinator.stop()
     finally:
+        agent.stop()
+        memory_daemon.stop() # Ensure it has a stop method and is called
+        # lore_trigger_watcher.stop() # If it was started and has a stop method
+        # message_handler.stop() # If it was started and has a stop method
+        # pulse_coordinator.stop() # If it was started and has a stop method
         remove_pid()
+        print("[System] Cleanup complete. Exiting.")
 
 if __name__ == "__main__":
-    if len(sys.argv) == 2 and sys.argv[1] == "start":
-        main()
+    # Simplified argument parsing: `python main.py start` or `python main.py start --gui`
+    if len(sys.argv) >= 2 and sys.argv[1] == "start":
+        main() # main() will check for --gui itself
     elif len(sys.argv) == 2 and sys.argv[1] == "stop":
         pid = read_pid()
         if pid:

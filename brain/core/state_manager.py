@@ -210,3 +210,56 @@ class StateManager:
     def rebuild_prompt_context(self):
         # Placeholder for context rebuild logic
         print("[StateManager] Rebuilt prompt context.")
+
+    def query_chroma_memories(self, query_text: str, n_results: int = 3) -> list[str]:
+        """
+        Queries both short-term and long-term ChromaDB collections for relevant memories.
+        Returns a list of unique memory texts.
+        """
+        if not query_text:
+            return []
+
+        all_results_data = []
+
+        try:
+            # Query short-term memories
+            short_term_results = self.short_mem_collection.query(
+                query_texts=[query_text],
+                n_results=n_results,
+                include=["documents", "distances"]
+            )
+            if short_term_results and short_term_results.get("documents"):
+                for i, doc in enumerate(short_term_results["documents"][0]):
+                    distance = short_term_results["distances"][0][i] if short_term_results.get("distances") and short_term_results["distances"][0] else float('inf')
+                    all_results_data.append({"text": doc, "distance": distance, "source": "short"})
+
+            # Query long-term memories
+            long_term_results = self.long_mem_collection.query(
+                query_texts=[query_text],
+                n_results=n_results,
+                include=["documents", "distances"]
+            )
+            if long_term_results and long_term_results.get("documents"):
+                for i, doc in enumerate(long_term_results["documents"][0]):
+                    distance = long_term_results["distances"][0][i] if long_term_results.get("distances") and long_term_results["distances"][0] else float('inf')
+                    all_results_data.append({"text": doc, "distance": distance, "source": "long"})
+            
+            # Sort all results by distance (ascending)
+            all_results_data.sort(key=lambda x: x["distance"])
+
+            # Get unique documents, preserving order of best scores
+            unique_documents = []
+            seen_texts = set()
+            for res_data in all_results_data:
+                if res_data["text"] not in seen_texts:
+                    unique_documents.append(f"({res_data['source']}) {res_data['text']}") # Add source hint
+                    seen_texts.add(res_data["text"])
+            
+            # Limit to n_results
+            final_documents = unique_documents[:n_results]
+            print(f"[🧠] ChromaDB query for '{query_text[:30]}...' returned {len(final_documents)} unique memories.")
+            return final_documents
+
+        except Exception as e:
+            print(f"[⚠️] ChromaDB query error: {e}")
+            return []

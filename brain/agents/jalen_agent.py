@@ -11,18 +11,18 @@ from brain.core.text_generation import TextGeneration
 # fall back to a minimal template that still provides the required placeholders
 # so that `.format(...)` calls succeed.
 try:
-    from brain.core.prompt_frame import prompt_template  # type: ignore
+    # Import the function to get templates and the function to set the current personality
+    from brain.core.prompt_frame import get_personality_template, set_current_personality, get_available_personalities # type: ignore
 except ImportError:
-    prompt_template = """
-{judy_name} (mood: {mood}, scene: {scene})
-
-Recent memories:
-{recent_memories}
-
-{user_name} said: {user_message}
-
-{judy_name}:
-"""
+    # Fallback if the import fails (e.g. module not found)
+    def get_personality_template(key=None): # Add key=None for compatibility
+        print("[JalenAgent] CRITICAL: brain.core.prompt_frame not found. Using minimal fallback template.")
+        return """{judy_name} (mood: {mood}, scene: {scene})\nRecent memories:\n{recent_memories}\n{user_name} said: {user_message}\n{judy_name}:"""
+    def set_current_personality(key):
+        print("[JalenAgent] CRITICAL: brain.core.prompt_frame not found. Cannot switch personality.")
+        return False
+    def get_available_personalities():
+        return ["default (fallback)"]
 
 class JalenAgent:
     def __init__(self, memory_daemon, state_manager, model_path=None, n_gpu_layers=None, log_prompts=False):
@@ -86,9 +86,21 @@ class JalenAgent:
                 new_model_path = parts[1].strip()
                 self.text_gen.switch_model(new_model_path)
                 print(f"[JalenAgent] Switched model to: {new_model_path}")
-                return f"[Judy🌹] Model switched to: {os.path.basename(new_model_path)}"
+                return f"Judy🌹: Model switched to: {os.path.basename(new_model_path)}"
             else:
-                return "[Judy🌹] Usage: /switchmodel <model_path>"
+                return "Judy🌹: Usage: /switchmodel <path_to_model.gguf>"
+        elif message.startswith("/personality"):
+            parts = message.split(maxsplit=1)
+            if len(parts) == 2:
+                new_personality_key = parts[1].strip()
+                if set_current_personality(new_personality_key):
+                    return f"Judy🌹: Personality switched to '{new_personality_key}'."
+                else:
+                    available = ", ".join(get_available_personalities())
+                    return f"Judy🌹: Unknown personality '{new_personality_key}'. Available: {available}"
+            else:
+                available = ", ".join(get_available_personalities())
+                return f"Judy🌹: Usage: /personality <name>. Available: {available}"
         return None
 
     def generate_response(self, user_input):
@@ -111,15 +123,50 @@ class JalenAgent:
         # Gather context
         mood = self.state_manager.get_mood() if hasattr(self.state_manager, 'get_mood') else "neutral"
         scene = self.state_manager.state.get("scene", "default")
-        # Optionally, fetch recent memories (stubbed here)
-        recent_memories = ""
+
+        # --- Enhanced Memory Retrieval ---
+        # 1. Get semantically relevant memories from ChromaDB
+        chroma_memories_list = []
+        if hasattr(self.state_manager, 'query_chroma_memories'):
+            try:
+                # Query based on current user input. Could be expanded to include more context.
+                chroma_memories_list = self.state_manager.query_chroma_memories(user_input, n_results=3)
+            except Exception as e:
+                print(f"[JalenAgent] Error querying ChromaDB memories: {e}")
+        
+        chroma_memories_str = ""
+        if chroma_memories_list:
+            chroma_memories_str = "Relevant thoughts from the archive:\n" + "\n".join(f"- {mem}" for mem in chroma_memories_list)
+
+        # 2. Get recent conversational memories (existing behavior)
+        legacy_recent_memories_str = ""
         if hasattr(self.state_manager, 'get_memories'):
-            memories = self.state_manager.get_memories(memory_type="short")
-            recent_memories = '\n'.join([m['text'] for m in memories[-5:]])
+            legacy_memories = self.state_manager.get_memories(memory_type="short") # Raw dicts
+            # We want the text, and ensure it's not duplicative of what Chroma might return if Chroma stores full "User: ..." strings
+            legacy_recent_memories_list = [m['text'] for m in legacy_memories[-5:] if 'text' in m]
+            if legacy_recent_memories_list:
+                legacy_recent_memories_str = "Recent conversation snippets:\n" + "\n".join(f"- {mem}" for mem in legacy_recent_memories_list)
+
+        # Combine memory strings
+        all_recent_memories = ""
+        if chroma_memories_str:
+            all_recent_memories += chroma_memories_str
+        if legacy_recent_memories_str:
+            if all_recent_memories: # if chroma_memories_str was added
+                all_recent_memories += "\n\n" # Add some separation
+            all_recent_memories += legacy_recent_memories_str
+        
+        if not all_recent_memories:
+            all_recent_memories = "No specific memories recalled for this interaction."
+        # --- End of Enhanced Memory Retrieval ---
+
+        # Get current personality template
+        current_prompt_template = get_personality_template() # Gets the currently set one
+
         # Compose prompt
-        prompt = prompt_template.format(
-            judy_name=core_profile.get("name", "Judy"),
-            user_name=core_profile.get("preferred_pet_names", ["Stixx"])[0],
+        prompt = current_prompt_template.format(
+            judy_name=core_profile.get("name", "Judy"), # Consider making judy_name part of personality
+            user_name=core_profile.get("preferred_pet_names", ["Stixx"])[0], # User name can be global
             mood=mood,
             scene=scene,
             recent_memories=recent_memories,
