@@ -68,59 +68,51 @@ def launch_test_gui(agent):
     
     def on_user_input(user_message):
         """Handle user input and get agent response"""
-        if hasattr(agent, 'generate_response'):
-            # Show typing indicator
+        # The widget's internal input handler will clear the box.
+        # We just log the user's message and get a response.
+        jalen_widget._log_message(f"You: {user_message}")
+
+        if hasattr(agent, 'generate_response_async'):
             jalen_widget.show_typing_indicator()
             
-            # Generate response asynchronously
             def handle_response(response):
-                # Schedule GUI updates to run in the main Tkinter thread
-                jalen_widget.after(0, lambda: jalen_widget.hide_typing_indicator())
-                jalen_widget.after(0, lambda: jalen_widget.show_avatar(temporary=True)) # Show avatar with Judy's message
-                jalen_widget.after(0, lambda: jalen_widget._log_message(f"You: {user_message}"))
+                # GUI updates are scheduled to run in the main thread via after()
+                jalen_widget.after(0, jalen_widget.hide_typing_indicator)
+                jalen_widget.after(0, jalen_widget.show_avatar)
                 jalen_widget.after(0, lambda: jalen_widget._log_message(f"Judy🌹: {response}"))
             
-            # Hide avatar before showing typing indicator and sending new message
-            # These calls are made from the main thread (Tkinter event handlers), so they are safe.
-            jalen_widget.hide_avatar()
             agent.generate_response_async(user_message, handle_response)
         else:
-            jalen_widget._log_message(f"You: {user_message}")
-            jalen_widget._log_message("Judy🌹: [Agent not ready]")
+            jalen_widget._log_message("Judy🌹: [Agent not ready for async operation]")
     
     # Create main window
     root = tk.Tk()
-    root.title("J.A.L.E.N - Judy's Advanced Interface")
-    root.geometry("800x600")
-    root.configure(bg="#0f0f1a")
+    root.title("J.A.L.E.N")
+    root.geometry("400x600") # Resized for the new widget
+    root.resizable(False, False)
+    root.configure(bg="#000000")
     
-    # Use your sophisticated JalenWidget
+    # Center the window
+    window_width = 400
+    window_height = 600
+    screen_width = root.winfo_screenwidth()
+    screen_height = root.winfo_screenheight()
+    center_x = int(screen_width/2 - window_width / 2)
+    center_y = int(screen_height/2 - window_height / 2)
+    root.geometry(f'{window_width}x{window_height}+{center_x}+{center_y}')
+    
+    # Use the JalenWidget
     jalen_widget = JalenWidget(root)
-    jalen_widget.pack(fill="both", expand=True)
+    jalen_widget.pack() # Pack it simply, it will adhere to its own size
     
-    # Add input handling (you'll need to add this method to JalenWidget)
-    # For now, let's add a simple input method
-    input_frame = tk.Frame(root, bg="#0f0f1a")
-    input_frame.pack(fill="x", padx=10, pady=5)
+    # Set the widget's internal input handler
+    jalen_widget.set_input_handler(on_user_input)
     
-    input_box = tk.Entry(input_frame, bg="#1a1a2e", fg="#E6E6FA", insertbackground="#FF00CC")
-    input_box.pack(side="left", fill="x", expand=True, padx=(0, 5))
-    
-    def send_message(event=None):
-        message = input_box.get().strip()
-        if message:
-            input_box.delete(0, tk.END)
-            on_user_input(message)
-    
-    input_box.bind('<Return>', send_message)
-    
-    send_btn = tk.Button(input_frame, text="Send", command=send_message, 
-                        bg="#FF00CC", fg="white")
-    send_btn.pack(side="right")
-    
-    # Initial greeting
-    jalen_widget._log_message("Judy🌹: " + agent.greet())
-    input_box.focus()
+    # Initial greeting from the agent
+    if hasattr(agent, 'greet'):
+        jalen_widget._log_message("Judy🌹: " + agent.greet())
+        
+    jalen_widget.focus_input() # Set focus to the widget's input box
     
     root.mainloop()
 
@@ -191,7 +183,7 @@ def main():
         print("[🚀] Launching CLI mode...")
         agent.start_chatbox() # Enable CLI chatbox
 
-    print("[🌹] Judy’s simplified system is live. Focus on core chat.")
+    print("[🌹] Judy's simplified system is live. Focus on core chat.")
 
     try:
         # If running CLI, the main loop is effectively in agent._chat_loop()

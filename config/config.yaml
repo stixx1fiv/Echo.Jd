@@ -11,7 +11,7 @@ model_settings:
   # Set to 0 to run on CPU only. 
   # Adjust according to your GPU's VRAM.
   # A common value for consumer GPUs might be 10-35.
-  n_gpu_layers: 30
+  n_gpu_layers: -1
 
 
 # Other application settings can be added below

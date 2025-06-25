@@ -1,10 +1,8 @@
 import tkinter as tk
 from tkinter import ttk
-from PIL import Image, ImageTk # For avatar image
-from gui.components.status_bar import StatusBar # May be removed later
-from gui.components.settings_panel import SettingsPanel
-from .typing_indicator import TypingIndicator  # Import the TypingIndicator
-import os # For path joining
+from PIL import Image, ImageTk
+from .typing_indicator import TypingIndicator
+import os
 
 class JalenWidget(tk.Frame):
     def __init__(self, parent, **kwargs):
