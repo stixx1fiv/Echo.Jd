@@ -39,9 +39,10 @@ class MemoryEntry:
         )
 
 class MemoryDaemon:
-    def __init__(self, memory_file, archive_file):
+    def __init__(self, memory_file, archive_file, state_manager=None):
         self.memory_file = memory_file
         self.archive_file = archive_file
+        self.state_manager = state_manager
         self.running = False
         self.memory = []
         self.shutdown_event = threading.Event()

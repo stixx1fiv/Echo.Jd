@@ -74,12 +74,14 @@ def launch_test_gui(agent):
             
             # Generate response asynchronously
             def handle_response(response):
-                jalen_widget.hide_typing_indicator()
-                jalen_widget.show_avatar(temporary=True) # Show avatar with Judy's message
-                jalen_widget._log_message(f"You: {user_message}")
-                jalen_widget._log_message(f"Judy🌹: {response}")
+                # Schedule GUI updates to run in the main Tkinter thread
+                jalen_widget.after(0, lambda: jalen_widget.hide_typing_indicator())
+                jalen_widget.after(0, lambda: jalen_widget.show_avatar(temporary=True)) # Show avatar with Judy's message
+                jalen_widget.after(0, lambda: jalen_widget._log_message(f"You: {user_message}"))
+                jalen_widget.after(0, lambda: jalen_widget._log_message(f"Judy🌹: {response}"))
             
             # Hide avatar before showing typing indicator and sending new message
+            # These calls are made from the main thread (Tkinter event handlers), so they are safe.
             jalen_widget.hide_avatar()
             agent.generate_response_async(user_message, handle_response)
         else:

@@ -169,7 +169,7 @@ class JalenAgent:
             user_name=core_profile.get("preferred_pet_names", ["Stixx"])[0], # User name can be global
             mood=mood,
             scene=scene,
-            recent_memories=recent_memories,
+            recent_memories=all_recent_memories,
             user_message=user_input
         )
         response = self.text_gen.generate(prompt)
