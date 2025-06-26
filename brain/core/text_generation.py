@@ -1,4 +1,4 @@
-import threading
+﻿import threading
 from llama_cpp import Llama  # type: ignore
 import os
 import glob
@@ -19,22 +19,6 @@ class TextGeneration:
     """
 
     def __init__(self, model_path: str | None = None, n_gpu_layers: int | None = None, log_prompts: bool = False):
-        # Store configuration but don't load model immediately (lazy loading)
-        self.model_path = self._resolve_model_path(model_path, n_gpu_layers)
-        self.n_gpu_layers = self._resolved_n_gpu_layers
-        self.log_prompts = log_prompts
-        
-        # Model loading state
-        self.model = None
-        self.lock = threading.Lock()
-        self._loading = False
-        self._load_error = None
-        
-        print(f"[TextGeneration] Configured model: {self.model_path} (n_gpu_layers={self.n_gpu_layers})")
-        print(f"[TextGeneration] Model will be loaded on first use (lazy loading)")
-
-    def _resolve_model_path(self, model_path: str | None = None, n_gpu_layers: int | None = None):
-        """Resolve model path and n_gpu_layers from various sources"""
         # 1) Explicit argument takes precedence
         resolved_model_path = model_path
 
@@ -57,7 +41,7 @@ class TextGeneration:
                     print(f"[TextGeneration] Failed to read config.yaml: {e}")
 
         # Default n_gpu_layers fallback
-        self._resolved_n_gpu_layers = 20 if n_gpu_layers is None else n_gpu_layers
+        n_gpu_layers = 20 if n_gpu_layers is None else n_gpu_layers
 
         if not resolved_model_path:
             raise ValueError(
@@ -66,7 +50,9 @@ class TextGeneration:
             )
 
         # If the provided path does not exist, attempt a naive fallback search in
-        # the local `models/` directory for any *.gguf file.
+        # the local `models/` directory for any *.gguf file. This spares new
+        # users from having to modify configuration files immediately after
+        # cloning the repo.
         if not os.path.exists(resolved_model_path):
             project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
             candidate_models = glob.glob(os.path.join(project_root, "models", "*.gguf"))
@@ -82,77 +68,48 @@ class TextGeneration:
                     "found inside the project's 'models/' directory."
                 )
 
-        return resolved_model_path
+        self.model_path = resolved_model_path
+        self.n_gpu_layers = n_gpu_layers
+        self.log_prompts = log_prompts # Store the log_prompts preference
 
-    def _ensure_model_loaded(self):
-        """Ensure the model is loaded, with thread-safe lazy loading"""
-        if self.model is not None:
-            return True
-            
-        if self._load_error is not None:
-            print(f"[TextGeneration] Previous load error: {self._load_error}")
-            return False
-            
-        if self._loading:
-            # Another thread is already loading, wait for it
-            import time
-            while self._loading and self.model is None:
-                time.sleep(0.1)
-            return self.model is not None
-            
-        # This thread will load the model
-        self._loading = True
+        print(
+            f"[TextGeneration] Loading model from {self.model_path} (n_gpu_layers={self.n_gpu_layers})..."
+        )
+
+        # Attempt GPU offload, fallback gracefully if unsupported by the platform or llama.cpp version
         try:
-            print(f"[TextGeneration] Loading model from {self.model_path} (n_gpu_layers={self.n_gpu_layers})...")
-            
-            # Attempt GPU offload, fallback gracefully if unsupported
-            try:
-                self.model = Llama(model_path=self.model_path, n_gpu_layers=self.n_gpu_layers)
-                print(f"[TextGeneration] Model loaded successfully with GPU layers: {self.n_gpu_layers}")
-            except TypeError:
-                # Older versions of llama.cpp might not accept n_gpu_layers
-                print(f"[TextGeneration] GPU layers not supported, falling back to CPU-only")
-                self.model = Llama(model_path=self.model_path)
-            except Exception as e:
-                print(f"[TextGeneration] GPU loading failed ({e}), trying CPU-only...")
-                try:
-                    self.model = Llama(model_path=self.model_path)
-                    print(f"[TextGeneration] Model loaded successfully on CPU")
-                except Exception as cpu_error:
-                    self._load_error = f"Failed to load model: {cpu_error}"
-                    print(f"[TextGeneration] Critical error loading model: {self._load_error}")
-                    return False
-                    
-            return True
-            
-        except Exception as e:
-            self._load_error = str(e)
-            print(f"[TextGeneration] Critical error loading model: {self._load_error}")
-            return False
-        finally:
-            self._loading = False
+            self.model = Llama(model_path=self.model_path, n_gpu_layers=self.n_gpu_layers)
+        except TypeError:
+            # Older versions of llama.cpp might not accept n_gpu_layers
+            self.model = Llama(model_path=self.model_path)
+        except Exception as e: # Catch other potential model loading errors
+            print(f"[TextGeneration] Critical error loading model: {e}. Text generation will likely fail.")
+            self.model = None # Ensure model is None if loading fails catastrophically
+
+
+        self.lock = threading.Lock()
 
     def generate(self, prompt, max_tokens=150, temperature=0.3):
         with self.lock:
-            if not self._ensure_model_loaded():
-                return f"[TextGeneration Error: {self._load_error or 'Model not available'}]"
-            
             if self.log_prompts:
                 print(f"\n[TextGeneration] Prompt being sent:\n{prompt}\n")
             
-            try:
-                response = self.model(
-                    prompt=prompt,
-                    max_tokens=max_tokens,
-                    temperature=temperature
-                )
-                result = response['choices'][0]['text'].strip()
-            except Exception as e:
-                result = f"[TextGeneration Error: {e}]"
-                print(f"[TextGeneration] Generation error: {e}")
-
-            # Post-process to extract Judy's first answer and trim repeated chat turns.
-            result = self._extract_first_assistant_response(result)
+            if self.model is None:
+                # This case should ideally be handled before calling generate,
+                # or by how JalenAgent handles a None model from TextGeneration.
+                # For now, return a clear error message.
+                result = "[TextGeneration Error: Model not available]"
+            else:
+                try:
+                    response = self.model(
+                        prompt=prompt,
+                        max_tokens=max_tokens,
+                        temperature=temperature,
+                        stop=["You:", "Stixx:", "\nYou:", "\nStixx:", "User:", "\nUser:"]
+                    )
+                    result = response['choices'][0]['text'].strip()
+                except Exception as e:
+                    result = f"[TextGeneration Error: {e}]"
 
             if self.log_prompts:
                 print(f"[TextGeneration] Generated response: {result}")
@@ -179,62 +136,9 @@ class TextGeneration:
                 print(
                     f"[TextGeneration] Switching to model: {model_path} (n_gpu_layers={n_gpu_layers})"
                 )
-                # Reset loading state
-                self._loading = False
-                self._load_error = None
-                self.model = None
-                
-                # Update paths
+                self.model = Llama(model_path=model_path, n_gpu_layers=n_gpu_layers)
                 self.model_path = model_path
                 self.n_gpu_layers = n_gpu_layers
-                
-                # Load new model
-                if self._ensure_model_loaded():
-                    print("[TextGeneration] Model switched successfully.")
-                else:
-                    print("[TextGeneration] Failed to switch model.")
+                print("[TextGeneration] Model switched successfully.")
             except Exception as e:
                 print(f"[TextGeneration] Failed to switch model: {e}")
-                self._load_error = str(e)
-
-    def is_ready(self):
-        """Check if the model is ready for generation"""
-        return self.model is not None and self._load_error is None
-
-    def get_status(self):
-        """Get current model status"""
-        if self._loading:
-            return "loading"
-        elif self.model is not None:
-            return "ready"
-        elif self._load_error:
-            return f"error: {self._load_error}"
-        else:
-            return "not_loaded"
-
-    @staticmethod
-    def _extract_first_assistant_response(text: str) -> str:
-        """Return only Judy's first reply, discarding further chat turns.
-
-        The model sometimes continues the conversation by emitting multiple
-        user/assistant turns in one go. We want just the first assistant utterance.
-        """
-        import re
-
-        # Normalize newlines to ensure consistent parsing
-        text = text.replace("\r\n", "\n")
-
-        # The text is the raw model output. We need to find where the *next* turn starts.
-        # This could be a user turn or another assistant turn.
-        stop_match = re.search(r"(?:\n|^)\s*###\s*(User|Assistant|System)", text, flags=re.IGNORECASE)
-        if stop_match:
-            text = text[:stop_match.start()]
-
-        cleaned = text.strip()
-
-        # If cleaning resulted in an empty string or still contains "###" markers, return
-        # the original text (also stripped) so the caller at least sees something.
-        if not cleaned or cleaned.startswith("###"):
-            return text.strip()
-
-        return cleaned

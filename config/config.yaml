@@ -5,13 +5,13 @@ model_settings:
   # IMPORTANT: This path needs to be accessible by the system running the application.
   # For Windows, backslashes should be escaped (e.g., "C:\\path\\to\\model.gguf")
   # For Linux/macOS, use forward slashes (e.g., "/path/to/model.gguf")
-  model_path: "C:\\Users\\cnorthington\\Echo.Jd\\models\\mistral-7b-v0.1.Q4_0.gguf"
+  model_path: "C:\\Users\\cnorthington\\xxEcho.JD\\models\\mistral-7b-v0.1.Q4_0.gguf"
   
   # Number of GPU layers to offload. 
   # Set to 0 to run on CPU only. 
   # Adjust according to your GPU's VRAM.
   # A common value for consumer GPUs might be 10-35.
-  n_gpu_layers: -1
+  n_gpu_layers: 20
 
 
 # Other application settings can be added below
@@ -21,6 +21,6 @@ model_settings:
 #   some_service: "your_api_key_here"
 
 logging_settings:
-  log_prompts: true  # Set to true to log prompts and responses, false to disable
+  log_prompts: false  # Set to true to log prompts and responses, false to disable
 
 state_file: "runtime/state.json"

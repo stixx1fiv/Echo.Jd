@@ -68,51 +68,57 @@ def launch_test_gui(agent):
     
     def on_user_input(user_message):
         """Handle user input and get agent response"""
-        # The widget's internal input handler will clear the box.
-        # We just log the user's message and get a response.
-        jalen_widget._log_message(f"You: {user_message}")
-
-        if hasattr(agent, 'generate_response_async'):
+        if hasattr(agent, 'generate_response'):
+            # Show typing indicator
             jalen_widget.show_typing_indicator()
             
+            # Generate response asynchronously
             def handle_response(response):
-                # GUI updates are scheduled to run in the main thread via after()
-                jalen_widget.after(0, jalen_widget.hide_typing_indicator)
-                jalen_widget.after(0, jalen_widget.show_avatar)
-                jalen_widget.after(0, lambda: jalen_widget._log_message(f"Judy🌹: {response}"))
+                jalen_widget.hide_typing_indicator()
+                jalen_widget.show_avatar(temporary=True) # Show avatar with Judy's message
+                jalen_widget._log_message(f"You: {user_message}")
+                jalen_widget._log_message(f"Judy🌹: {response}")
             
+            # Hide avatar before showing typing indicator and sending new message
+            jalen_widget.hide_avatar()
             agent.generate_response_async(user_message, handle_response)
         else:
-            jalen_widget._log_message("Judy🌹: [Agent not ready for async operation]")
+            jalen_widget._log_message(f"You: {user_message}")
+            jalen_widget._log_message("Judy🌹: [Agent not ready]")
     
     # Create main window
     root = tk.Tk()
-    root.title("J.A.L.E.N")
-    root.geometry("400x600") # Resized for the new widget
-    root.resizable(False, False)
-    root.configure(bg="#000000")
+    root.title("J.A.L.E.N - Judy's Advanced Interface")
+    root.geometry("800x600")
+    root.configure(bg="#0f0f1a")
     
-    # Center the window
-    window_width = 400
-    window_height = 600
-    screen_width = root.winfo_screenwidth()
-    screen_height = root.winfo_screenheight()
-    center_x = int(screen_width/2 - window_width / 2)
-    center_y = int(screen_height/2 - window_height / 2)
-    root.geometry(f'{window_width}x{window_height}+{center_x}+{center_y}')
-    
-    # Use the JalenWidget
+    # Use your sophisticated JalenWidget
     jalen_widget = JalenWidget(root)
-    jalen_widget.pack() # Pack it simply, it will adhere to its own size
+    jalen_widget.pack(fill="both", expand=True)
     
-    # Set the widget's internal input handler
-    jalen_widget.set_input_handler(on_user_input)
+    # Add input handling (you'll need to add this method to JalenWidget)
+    # For now, let's add a simple input method
+    input_frame = tk.Frame(root, bg="#0f0f1a")
+    input_frame.pack(fill="x", padx=10, pady=5)
     
-    # Initial greeting from the agent
-    if hasattr(agent, 'greet'):
-        jalen_widget._log_message("Judy🌹: " + agent.greet())
-        
-    jalen_widget.focus_input() # Set focus to the widget's input box
+    input_box = tk.Entry(input_frame, bg="#1a1a2e", fg="#E6E6FA", insertbackground="#FF00CC")
+    input_box.pack(side="left", fill="x", expand=True, padx=(0, 5))
+    
+    def send_message(event=None):
+        message = input_box.get().strip()
+        if message:
+            input_box.delete(0, tk.END)
+            on_user_input(message)
+    
+    input_box.bind('<Return>', send_message)
+    
+    send_btn = tk.Button(input_frame, text="Send", command=send_message, 
+                        bg="#FF00CC", fg="white")
+    send_btn.pack(side="right")
+    
+    # Initial greeting
+    jalen_widget._log_message("Judy🌹: " + agent.greet())
+    input_box.focus()
     
     root.mainloop()
 
@@ -137,81 +143,60 @@ def main():
 
     memory_daemon = MemoryDaemon(memory_file=MEMORY_PATH, archive_file=ARCHIVE_PATH)
     memory_daemon.state_manager = state_manager
-    # memory_daemon.start() # Ensure memory daemon is started if it has a start method
 
-    # --- Temporarily disable non-essential daemons ---
-    # lore_trigger_watcher = LoreTriggerWatcher(state_manager, memory_daemon)
-    # lore_trigger_watcher.start() # If it has a start method
+    lore_trigger_watcher = LoreTriggerWatcher(state_manager, memory_daemon)
 
-    # message_queue = Queue()
-    # def dummy_command_router(cmd):
-    #     print(f"[CommandRouter] {cmd}")
-    # message_handler = MessageHandlerDaemon(dummy_command_router, message_queue, state_manager=state_manager)
-    # message_handler.start()
+    message_queue = Queue()
 
-    # pulse_coordinator = PulseCoordinator(
-    #     state_manager=state_manager,
-    #     memory_daemon=memory_daemon,
-    #     daemons={
-    #         # "LoreTriggerWatcher": lore_trigger_watcher, # Disabled
-    #         # "MessageHandler": message_handler # Disabled
-    #     },
-    #     interval=30 # Increased interval if kept, or disable
-    # )
-    # pulse_coordinator.register_observer(status_bar.handle_pulse_update) # GUI dependent
-    # pulse_coordinator.start()
-    # --- End of disabled daemons ---
+    def dummy_command_router(cmd):
+        print(f"[CommandRouter] {cmd}")
 
-    print("[⚠️] LoreTriggerWatcher, MessageHandlerDaemon, and PulseCoordinator are temporarily disabled for simplification.")
+    message_handler = MessageHandlerDaemon(dummy_command_router, message_queue, state_manager=state_manager)
+    message_handler.start()
 
+    # PulseCoordinator now fully operational
+    daemons = {
+        "LoreTriggerWatcher": lore_trigger_watcher,
+        "MessageHandler": message_handler
+    }
+    pulse_coordinator = PulseCoordinator(
+        state_manager=state_manager,
+        memory_daemon=memory_daemon,
+        daemons=daemons,
+        interval=5
+    )
+    pulse_coordinator.register_observer(status_bar.handle_pulse_update)
+    pulse_coordinator.start()
+
+    # Fire up Judy's chat agent
+    # Pass the model_path, n_gpu_layers, and log_prompts from config to JalenAgent
     agent = JalenAgent(memory_daemon,
                        state_manager,
                        model_path=model_path_config,
                        n_gpu_layers=n_gpu_layers_config,
                        log_prompts=log_prompts_config)
+    # agent.start_chatbox()  # Disabled for test GUI
+    gui_thread = threading.Thread(target=launch_test_gui, args=(agent,), daemon=True)
+    gui_thread.start()
 
-    # Determine mode: CLI or GUI
-    run_gui = False
-    if len(sys.argv) > 1 and sys.argv[-1] == "--gui":
-        run_gui = True
-    
-    if run_gui:
-        print("[🚀] Launching GUI mode...")
-        gui_thread = threading.Thread(target=launch_test_gui, args=(agent,), daemon=True)
-        gui_thread.start()
-    else:
-        print("[🚀] Launching CLI mode...")
-        agent.start_chatbox() # Enable CLI chatbox
-
-    print("[🌹] Judy's simplified system is live. Focus on core chat.")
+    print("[🌹] Judy’s system is live. Daemons humming. Pulse beating. Let’s ride.")
 
     try:
-        # If running CLI, the main loop is effectively in agent._chat_loop()
-        # If running GUI, this loop keeps the main thread alive for daemon threads
-        # and to catch KeyboardInterrupt.
         while True:
-            if run_gui and not gui_thread.is_alive():
-                print("[System] GUI thread has ended. Exiting.")
-                break
-            if not run_gui and agent._input_thread and not agent._input_thread.is_alive():
-                 print("[System] CLI chat thread has ended. Exiting.")
-                 break
             time.sleep(1)
     except KeyboardInterrupt:
         print("\n[System] Shutdown requested.")
-    finally:
         agent.stop()
-        memory_daemon.stop() # Ensure it has a stop method and is called
-        # lore_trigger_watcher.stop() # If it was started and has a stop method
-        # message_handler.stop() # If it was started and has a stop method
-        # pulse_coordinator.stop() # If it was started and has a stop method
+        memory_daemon.stop()
+        lore_trigger_watcher.stop()
+        message_handler.stop()
+        pulse_coordinator.stop()
+    finally:
         remove_pid()
-        print("[System] Cleanup complete. Exiting.")
 
 if __name__ == "__main__":
-    # Simplified argument parsing: `python main.py start` or `python main.py start --gui`
-    if len(sys.argv) >= 2 and sys.argv[1] == "start":
-        main() # main() will check for --gui itself
+    if len(sys.argv) == 2 and sys.argv[1] == "start":
+        main()
     elif len(sys.argv) == 2 and sys.argv[1] == "stop":
         pid = read_pid()
         if pid:
