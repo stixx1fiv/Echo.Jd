@@ -11,6 +11,7 @@ class ChromaDB:
         self.long_term = self.client.get_or_create_collection("long_term_memory")
 
     def add(self, content, memory_type="short", tags=None):
+        print(f"[📥] Embedding to Chroma: {content[:60]}")
         collection = self.short_term if memory_type == "short" else self.long_term
         metadata = {"tags": tags} if tags else {}
         
