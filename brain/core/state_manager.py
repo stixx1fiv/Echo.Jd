@@ -1,265 +1,86 @@
 import json
-import threading
-import time
 import os
-import chromadb
-from chromadb.config import Settings
-from brain.core.nlp_utils import advanced_autotag
+import time
+import threading
+from brain.core.chroma_indexer import ChromaDB
+from brain.core.autotag import AutoTagger
 
 class StateManager:
-    def __init__(self, memory_file="memory/state.json", mood_decay_rate=0.01):
+    MAX_SHORT_MEMORY = 100
+    MAX_LONG_MEMORY = 500
+
+    def __init__(self, memory_file="memory/state.json"):
         self.memory_file = memory_file
         self.state = {
-            "mood": "neutral",
             "short_term_memory": [],
             "long_term_memory": [],
-            "pet_names": [],
-            "last_updated": time.time(),
-            "mode": "idle",
-            "scene": "default"
+            "scene_state": {}
         }
-        self.modes = ["idle", "assist", "chat"]
-        self.lock = threading.Lock()
-        self.manual_overrides = {}
-        self.running = True  # For clean thread stops
+        self.chroma = ChromaDB()
+        self.autotagger = AutoTagger()
         self.load_state()
-        self.mood_decay_rate = mood_decay_rate
-        self._init_chromadb()
-        self._observers = []
-        self.start_background_migration()
-
-    def _init_chromadb(self):
-        self.chroma_client = chromadb.Client(Settings(persist_directory="chromadb_data"))
-        self.short_mem_collection = self.chroma_client.get_or_create_collection("short_term_memory")
-        self.long_mem_collection = self.chroma_client.get_or_create_collection("long_term_memory")
 
     def load_state(self):
-        try:
-            with open(self.memory_file, "r", encoding="utf-8") as f:
+        if os.path.exists(self.memory_file):
+            with open(self.memory_file, "r") as f:
                 self.state = json.load(f)
-            print("[🔄] State loaded from disk.")
-        except (FileNotFoundError, json.JSONDecodeError):
-            print("[⚠️] No valid previous state found. Starting fresh.")
+        else:
+            self.save_state()
 
     def save_state(self):
-        with self.lock:
-            try:
-                with open(self.memory_file, "w", encoding="utf-8") as f:
-                    json.dump(self.state, f, indent=2)
-            except Exception as e:
-                print(f"[⚠️] Failed to save state: {e}")
+        with open(self.memory_file, "w") as f:
+            json.dump(self.state, f, indent=2)
 
-    def update_mood(self, new_mood):
-        with self.lock:
-            old_mood = self.state.get("mood", "neutral")
-            self.state["mood"] = new_mood
-            self._touch()
-            print(f"[💢] Mood changed: {old_mood} → {new_mood}")
+    def start_background_migration(self, mode="idle", interval=600):
+        def migration_loop():
+            while True:
+                if mode == "idle":
+                    self.migrate_short_to_long_term()
+                time.sleep(interval)
+
+        thread = threading.Thread(target=migration_loop, daemon=True)
+        thread.start()
+
+    def migrate_short_to_long_term(self):
+        self.state["long_term_memory"].extend(self.state["short_term_memory"])
+        self.state["short_term_memory"] = []
         self.save_state()
-        self.notify_observers("mood_changed", {"old_mood": old_mood, "new_mood": new_mood})
 
-    def decay_mood(self):
-        with self.lock:
-            if self.state["mood"] != "neutral":
-                self.state["mood"] = "neutral"
-                self._touch()
-                print(f"[🍂] Mood decayed to neutral.")
-                self.save_state()
-
-    def add_memory(self, text, memory_type="short"):
-        target = "short_term_memory" if memory_type == "short" else "long_term_memory"
-        with self.lock:
-            self.state[target].append({"timestamp": time.time(), "text": text})
-            self._touch()
-        self.save_state()
-        self.add_memory_chroma(text, memory_type)
-
-    def add_memory_chroma(self, text, memory_type="short", metadata=None):
-        collection = self.short_mem_collection if memory_type == "short" else self.long_mem_collection
-        doc_id = f"{memory_type}_{int(time.time()*1000)}"
-        meta = metadata or {"timestamp": time.time()}
-        meta["tags"] = advanced_autotag(text)
-        for k, v in meta.items():
-            if isinstance(v, list):
-                meta[k] = ','.join(map(str, v))
-        collection.add(documents=[text], metadatas=[meta], ids=[doc_id])
-
-    def get_memories(self, memory_type="short"):
-        with self.lock:
-            target = "short_term_memory" if memory_type == "short" else "long_term_memory"
-            return list(self.state.get(target, []))
-
-    def set_mode(self, mode):
-        with self.lock:
-            if mode in self.modes:
-                old_mode = self.state.get("mode", "idle")
-                self.state["mode"] = mode
-                self._touch()
-                print(f"[⚙️] Mode: {old_mode} → {mode}")
-                self.save_state()
-            else:
-                print(f"[⚠️] Invalid mode: {mode}")
-
-    def set_scene(self, scene_name):
-        scene_path = os.path.join("scenes", f"{scene_name}.json")
-        with self.lock:
-            try:
-                with open(scene_path, "r") as f:
-                    scene_data = json.load(f)
-                self.state["scene"] = scene_name
-                self.state["scene_data"] = scene_data
-                self._touch()
-                print(f"[🎬] Scene set: {scene_name}")
-                self.save_state()
-            except Exception as e:
-                print(f"[⚠️] Scene error: {e}")
-
-    def _touch(self):
-        self.state["last_updated"] = time.time()
-
-    def register_observer(self, callback):
-        self._observers.append(callback)
-
-    def notify_observers(self, event_type, data=None):
-        for cb in self._observers:
-            try:
-                cb(event_type, data)
-            except Exception as e:
-                print(f"[⚠️] Observer error: {e}")
-
-    def start_background_migration(self, interval_minutes=10):
-        def migrate_loop():
-            while self.running:
-                if self.state["mode"] == "idle":
-                    self.migrate_legacy_to_chroma()
-                time.sleep(interval_minutes * 60)
-        t = threading.Thread(target=migrate_loop, daemon=True)
-        t.start()
-        print(f"[🧠] Memory migration thread live.")
-
-    def migrate_legacy_to_chroma(self, path="memory/state.json"):
+    def query_chroma_memories(self, query, memory_type="short", n_results=3):
         try:
-            with open(path, "r", encoding="utf-8") as f:
-                old_memories = json.load(f)
+            return self.chroma.query_similar(query, memory_type=memory_type, n_results=n_results)
         except Exception as e:
-            print(f"[⚠️] Migration failed: {e}")
-            return
-        for mem in old_memories:
-            text = mem.get("text", "")
-            if text:
-                self.add_memory_chroma(text, metadata={"timestamp": mem.get("timestamp", time.time()), "migrated": True})
-        print(f"[🔄] Legacy memories migrated.")
-
-    def stop(self):
-        self.running = False
-
-    def get_mood(self):
-        """
-        Returns the current mood state as a string, e.g. 'neutral', 'happy', 'sad', etc.
-        """
-        with self.lock:
-            return self.state.get("mood", "neutral")
-
-    def get_mode(self):
-        """
-        Returns the current mode state as a string, e.g. 'idle', 'assist', 'chat', etc.
-        """
-        with self.lock:
-            return self.state.get("mode", "idle")
-
-    def get_scene(self):
-        """
-        Returns the current scene name as a string, e.g. 'default', 'office', etc.
-        """
-        with self.lock:
-            return self.state.get("scene", "default")
-
-    def rewrite_memory(self, memory_id, new_text, memory_type="short"):
-        """
-        Rewrite a memory entry by ID in the state and save to disk.
-        """
-        with self.lock:
-            target = "short_term_memory" if memory_type == "short" else "long_term_memory"
-            for mem in self.state.get(target, []):
-                if mem.get("id") == memory_id:
-                    mem["text"] = new_text
-                    mem["edited_timestamp"] = time.time()
-                    break
-            self._touch()
-        self.save_state()
-
-    def mark_context_stale(self):
-        with self.lock:
-            self.state["context_stale"] = True
-
-    def clear_context_stale(self):
-        with self.lock:
-            self.state["context_stale"] = False
-
-    def is_context_stale(self):
-        with self.lock:
-            return self.state.get("context_stale", False)
-
-    def migrate_long_term_memories_to_chroma(self):
-        # Example: migrate all long-term memories to ChromaDB
-        with self.lock:
-            for mem in self.state.get("long_term_memory", []):
-                self.add_memory_chroma(mem["text"], memory_type="long", metadata=mem)
-        print("[StateManager] Migrated long-term memories to ChromaDB.")
-
-    def rebuild_prompt_context(self):
-        # Placeholder for context rebuild logic
-        print("[StateManager] Rebuilt prompt context.")
-
-    def query_chroma_memories(self, query_text: str, n_results: int = 3) -> list[str]:
-        """
-        Queries both short-term and long-term ChromaDB collections for relevant memories.
-        Returns a list of unique memory texts.
-        """
-        if not query_text:
+            print(f"[⚠️] Memory query failed: {e}")
             return []
 
-        all_results_data = []
+    def advanced_autotag(self, content, memory_type="short"):
+        try:
+            tags = self.autotagger.generate_tags(content)
+            self.chroma.add(content, memory_type=memory_type, tags=tags)
+        except Exception as e:
+            print(f"[⚠️] Autotagging failed: {e}")
+
+    def add_memory(self, content, memory_type="short"):
+        memory = {
+            "content": content,
+            "timestamp": time.time(),
+            "metadata": {
+                "type": memory_type
+            }
+        }
+
+        if memory_type == "short":
+            self.state["short_term_memory"].append(memory)
+            if len(self.state["short_term_memory"]) > self.MAX_SHORT_MEMORY:
+                self.state["short_term_memory"].pop(0)
+        elif memory_type == "long":
+            self.state["long_term_memory"].append(memory)
+            if len(self.state["long_term_memory"]) > self.MAX_LONG_MEMORY:
+                self.state["long_term_memory"].pop(0)
+
+        self.save_state()
 
         try:
-            # Query short-term memories
-            short_term_results = self.short_mem_collection.query(
-                query_texts=[query_text],
-                n_results=n_results,
-                include=["documents", "distances"]
-            )
-            if short_term_results and short_term_results.get("documents"):
-                for i, doc in enumerate(short_term_results["documents"][0]):
-                    distance = short_term_results["distances"][0][i] if short_term_results.get("distances") and short_term_results["distances"][0] else float('inf')
-                    all_results_data.append({"text": doc, "distance": distance, "source": "short"})
-
-            # Query long-term memories
-            long_term_results = self.long_mem_collection.query(
-                query_texts=[query_text],
-                n_results=n_results,
-                include=["documents", "distances"]
-            )
-            if long_term_results and long_term_results.get("documents"):
-                for i, doc in enumerate(long_term_results["documents"][0]):
-                    distance = long_term_results["distances"][0][i] if long_term_results.get("distances") and long_term_results["distances"][0] else float('inf')
-                    all_results_data.append({"text": doc, "distance": distance, "source": "long"})
-            
-            # Sort all results by distance (ascending)
-            all_results_data.sort(key=lambda x: x["distance"])
-
-            # Get unique documents, preserving order of best scores
-            unique_documents = []
-            seen_texts = set()
-            for res_data in all_results_data:
-                if res_data["text"] not in seen_texts:
-                    unique_documents.append(f"({res_data['source']}) {res_data['text']}") # Add source hint
-                    seen_texts.add(res_data["text"])
-            
-            # Limit to n_results
-            final_documents = unique_documents[:n_results]
-            print(f"[🧠] ChromaDB query for '{query_text[:30]}...' returned {len(final_documents)} unique memories.")
-            return final_documents
-
+            self.advanced_autotag(content, memory_type)
         except Exception as e:
-            print(f"[⚠️] ChromaDB query error: {e}")
-            return []
+            print(f"[⚠️] Autotagging failed: {e}")
