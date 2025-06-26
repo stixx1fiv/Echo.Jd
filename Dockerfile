@@ -9,11 +9,16 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install pyyaml
+RUN pip install pyyaml fastapi uvicorn pydantic
 
 COPY . /app
 
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Create necessary directories and files
+RUN mkdir -p memory && \
+    echo '{"short_term_memory": [], "long_term_memory": [], "scene_state": {}}' > memory/state.json && \
+    mkdir -p memory/chroma_db
 
 EXPOSE 8000
 
