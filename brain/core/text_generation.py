@@ -1,8 +1,8 @@
 ﻿from llama_cpp import Llama
 
 class TextGenerator:
-    def __init__(self, model_path="models/mistral-7b-instruct-v0.1.Q4_K_M.gguf"):
-        self.model_path = model_path
+    def __init__(self):
+        self.model_path = "models/mistral-7b-v0.1.Q4_0.gguf"
         self.llm = self.load_model()
 
     def load_model(self):
@@ -11,7 +11,7 @@ class TextGenerator:
             n_ctx=2048,
             n_batch=512,
             n_threads=8,
-            n_gpu_layers=33,
+            n_gpu_layers=-1,
             use_mlock=True,
             verbose=False
         )

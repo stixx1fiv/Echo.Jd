@@ -13,7 +13,10 @@ class ChromaDB:
     def add(self, content, memory_type="short", tags=None):
         print(f"[📥] Embedding to Chroma: {content[:60]}")
         collection = self.short_term if memory_type == "short" else self.long_term
-        metadata = {"tags": tags} if tags else {}
+        
+        # Convert tags list to a single string, if it's a list
+        tags_str = ", ".join(tags) if isinstance(tags, list) else tags
+        metadata = {"tags": tags_str} if tags_str else {}
         
         # Use content hash as ID to avoid duplicates
         import hashlib
